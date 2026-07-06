@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ObserveOps · Prototype Gallery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0F1C; --bg-bar:#080C16; --card:#0E1525; --card-2:#121B2D; --card-hover:#141E32;
+    --border:#1B2438; --border-soft:#151D2E;
+    --text:#E8ECF4; --text-2:#98A1B4; --text-3:#5C6679; --text-4:#454E61;
+    --accent:#F26B3A; --accent-soft:rgba(242,107,58,.16);
+    --crit:#E5563A; --crit-bg:rgba(229,86,58,.14);
+    --warn:#E2A93C; --warn-bg:rgba(226,169,60,.14);
+    --ok:#2FB79A; --ok-bg:rgba(47,183,154,.14);
+    --info:#4F8AD0;
+    --ui:"Inter",-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:
+      radial-gradient(1100px 600px at 78% -8%,rgba(242,107,58,.10),transparent 60%),
+      radial-gradient(900px 520px at 8% 108%,rgba(47,183,154,.08),transparent 55%),
+      var(--bg);
+    color:var(--text);font-family:var(--ui);-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;flex-direction:column}
+
+  /* top bar */
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    height:60px;padding:0 30px;background:rgba(8,12,22,.72);
+    border-bottom:1px solid var(--border-soft);backdrop-filter:blur(6px)}
+  .brand{display:flex;align-items:center;gap:1px;font-weight:800;font-size:23px;letter-spacing:-.5px}
+  .brand .ring{width:13px;height:13px;border-radius:50%;border:3px solid var(--accent);display:inline-block;margin:0 1px;transform:translateY(1px)}
+  .build{font-size:11.5px;font-weight:600;color:var(--text-2);border:1px solid var(--border);
+    padding:5px 11px;border-radius:6px;letter-spacing:.3px}
+
+  /* hero */
+  main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:56px 24px 40px}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;
+    color:var(--accent);display:flex;align-items:center;gap:9px;margin-bottom:14px}
+  .eyebrow::before,.eyebrow::after{content:"";width:26px;height:1px;background:linear-gradient(90deg,transparent,var(--accent))}
+  .eyebrow::before{background:linear-gradient(90deg,var(--accent),transparent)}
+  h1{font-size:34px;font-weight:800;letter-spacing:-.8px;text-align:center;line-height:1.15}
+  .sub{margin-top:12px;font-size:15px;color:var(--text-2);text-align:center;max-width:560px;line-height:1.55}
+
+  /* cards */
+  .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;
+    width:100%;max-width:940px;margin-top:44px}
+  @media (max-width:760px){.cards{grid-template-columns:1fr}}
+
+  .card{position:relative;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,var(--card-2),var(--card));
+    border:1px solid var(--border);border-radius:16px;padding:24px 24px 22px;
+    text-decoration:none;color:inherit;overflow:hidden;
+    transition:transform .18s cubic-bezier(.4,0,.2,1),border-color .18s,box-shadow .18s}
+  .card::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;
+    background:var(--barc,var(--accent));opacity:.9}
+  .card:hover{transform:translateY(-4px);border-color:var(--barc,var(--accent));
+    box-shadow:0 18px 40px -18px rgba(0,0,0,.7),0 0 0 1px var(--barc,var(--accent)) inset}
+
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+  .badge{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    background:var(--tintbg,var(--accent-soft));color:var(--barc,var(--accent));border:1px solid var(--border)}
+  .idx{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text-4);
+    border:1px solid var(--border);border-radius:6px;padding:4px 8px}
+  .kicker{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-3);margin-bottom:5px}
+  .card h2{font-size:19px;font-weight:700;letter-spacing:-.3px;line-height:1.25}
+  .card p{margin-top:9px;font-size:13.5px;color:var(--text-2);line-height:1.55}
+
+  /* mini preview strip */
+  .preview{display:flex;gap:8px;margin-top:18px}
+  .pill{flex:1;background:#0A1120;border:1px solid var(--border-soft);border-radius:9px;
+    padding:9px 11px;display:flex;flex-direction:column;gap:3px;min-width:0}
+  .pill .pk{font-size:9.5px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-4);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pill .pv{font-family:var(--mono);font-size:15px;font-weight:700;line-height:1}
+  .pv.crit{color:var(--crit)} .pv.warn{color:var(--warn)} .pv.ok{color:var(--ok)} .pv.info{color:var(--info)}
+
+  .card-foot{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border-soft)}
+  .fname{font-family:var(--mono);font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%}
+  .open{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:700;color:var(--barc,var(--accent))}
+  .open svg{transition:transform .18s}
+  .card:hover .open svg{transform:translateX(4px)}
+
+  footer{padding:20px 24px 26px;text-align:center;color:var(--text-4);font-size:12px}
+  footer .mono{font-family:var(--mono)}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span>m</span><span class="ring"></span><span>tadata</span></div>
+    <span class="build">BUILD : 8.2.5</span>
+  </header>
+
+  <main>
+    <div class="eyebrow">ObserveOps · APM &amp; RUM</div>
+    <h1>Prototype Gallery</h1>
+    <p class="sub">Two incident-first visibility prototypes. Pick a screen to open the full interactive mockup.</p>
+
+    <div class="cards">
+
+      <!-- Option 1 -->
+      <a class="card" style="--barc:var(--crit);--tintbg:var(--crit-bg)"
+         href="error-alert.html">
+        <div class="card-top">
+          <span class="badge">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><path d="M12 3l9 16H3L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10v4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.6" r="1.05" fill="currentColor"/></svg>
+          </span>
+          <span class="idx">01</span>
+        </div>
+        <div class="kicker">APM · Active Error</div>
+        <h2>APM Active Error Screen</h2>
+        <p>Application error tracker for <b style="color:var(--text)">mcnulty-query</b> — active errors grouped by exception, error trend, and impacted transactions.</p>
+        <div class="preview">
+          <div class="pill"><span class="pk">Active Errors</span><span class="pv crit">847</span></div>
+          <div class="pill"><span class="pk">Error Rate</span><span class="pv warn">8.3%</span></div>
+          <div class="pill"><span class="pk">Exceptions</span><span class="pv info">12</span></div>
+        </div>
+        <div class="card-foot">
+          <span class="fname">error-alert.html</span>
+          <span class="open">Open<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </a>
+
+      <!-- Option 2 -->
+      <a class="card" style="--barc:var(--accent);--tintbg:var(--accent-soft)"
+         href="ObserveOps%20APM%20RUM%20Incident-First%20(standalone)%201.html">
+        <div class="card-top">
+          <span class="badge">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18M12 3c2.4 2.5 2.4 15.5 0 18M12 3c-2.4 2.5-2.4 15.5 0 18" stroke="currentColor" stroke-width="1.35"/></svg>
+          </span>
+          <span class="idx">02</span>
+        </div>
+        <div class="kicker">APM &amp; RUM · Incident-First</div>
+        <h2>Incident-First Visibility</h2>
+        <p>Full APM + RUM detail app — Overview, a merged <b style="color:var(--text)">Alerts &amp; Incidents</b> tab, configured policy and an incident drawer, with an APM / RUM context switcher.</p>
+        <div class="preview">
+          <div class="pill"><span class="pk">Response</span><span class="pv crit">2.8s</span></div>
+          <div class="pill"><span class="pk">Err %</span><span class="pv warn">8.3%</span></div>
+          <div class="pill"><span class="pk">Requests</span><span class="pv ok">8.5k</span></div>
+        </div>
+        <div class="card-foot">
+          <span class="fname">ObserveOps APM RUM Incident-First … 1.html</span>
+          <span class="open">Open<svg viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        </div>
+      </a>
+
+    </div>
+  </main>
+
+  <footer>ObserveOps AIOps prototypes · <span class="mono">build 8.2.5</span></footer>
+</body>
+</html>
