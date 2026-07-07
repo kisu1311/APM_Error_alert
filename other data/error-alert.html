@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Active Error – APM · mcnulty-query | ObserveOps</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* ═══ TOKENS — APM dark (near-black) adaptation of the ObserveOps design system ═══ */
+    :root {
+      --bg: #0a0a0e;
+      --header: #0d0d12;
+      --nav: #0c0c11;
+      --panel: #101018;
+      --card: #121219;
+      --card2: #0f0f16;
+      --inset: #16161f;
+      --border: #23232e;
+      --border2: #2b2b38;
+      --text: #e3e7ef;
+      --muted: #8b91a3;
+      --dim: #565d70;
+      --teal: #14b8a6;
+      --cyan: #22b8d6;
+      --teal-glow: rgba(20, 184, 166, .16);
+      /* severity — matches Figma variable defs (Severity/*) */
+      --critical: #f25c4e;
+      --major: #f58518;
+      --warning: #f5bc18;
+      --clear: #89c540;
+      --blue: #009ddc;
+      --brand-blue: #3279be;
+      --purple: #8c5bd8;
+      --pink: #e05b9a;
+      --critical-bg: rgba(242, 92, 78, .13);
+      --major-bg: rgba(245, 133, 24, .13);
+      --warning-bg: rgba(245, 188, 24, .13);
+      --clear-bg: rgba(137, 197, 64, .13);
+      --blue-bg: rgba(0, 157, 220, .13);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0 }
+
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: 'Inter', sans-serif; font-size: 12px;
+      background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased
+    }
+
+    a { text-decoration: none; color: inherit }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; font-size: inherit; color: inherit; outline: none }
+    input { border: none; background: none; font-family: inherit; font-size: inherit; color: inherit; outline: none }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px }
+    ::-webkit-scrollbar-track { background: transparent }
+
+    svg { display: block; overflow: visible }
+    .mono { font-family: 'JetBrains Mono', monospace }
+
+    /* ═══ SHELL ═══════════════════════════════════════════════ */
+    .shell { display: flex; flex-direction: column; height: 100vh }
+
+    /* APP HEADER (motadata bar) */
+    .appbar { flex-shrink: 0; height: 48px; display: flex; align-items: center; background: var(--header); border-bottom: 1px solid var(--border); padding: 0 16px }
+    .brand { display: flex; align-items: center; gap: 9px }
+    .brand-mark { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: conic-gradient(from 210deg, #0ea5b8, #22d3ee, #14b8a6, #0ea5b8) }
+    .brand-mark::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--header) }
+    .brand-word { font-size: 17px; font-weight: 800; letter-spacing: -.5px; color: #fff }
+    .brand-word b { color: var(--cyan); font-weight: 800 }
+    .appbar-r { margin-left: auto; display: flex; align-items: center; gap: 6px }
+    .ab-ico { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--muted); position: relative }
+    .ab-ico:hover { background: var(--card); color: var(--text) }
+    .ab-ico svg { width: 16px; height: 16px }
+    .ab-badge { position: absolute; top: 1px; right: 1px; background: var(--critical); color: #fff; font-size: 8px; font-weight: 700; min-width: 14px; height: 14px; line-height: 14px; text-align: center; border-radius: 7px; padding: 0 2px; border: 1.5px solid var(--header) }
+    .build-pill { font-size: 10px; font-weight: 700; letter-spacing: .3px; color: #063; background: rgba(20, 184, 166, .18); color: var(--teal); border: 1px solid rgba(20, 184, 166, .35); padding: 3px 9px; border-radius: 5px; margin: 0 4px }
+    .avatar { width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(135deg, #14b8a6, #0891b2); color: #fff; display: flex; align-items: center; justify-content: center; margin-left: 4px }
+    .avatar svg { width: 16px; height: 16px }
+
+    /* BREADCRUMB / TIME BAR */
+    .crumbbar { flex-shrink: 0; height: 44px; display: flex; align-items: center; gap: 10px; padding: 0 16px 0 12px; background: var(--nav); border-bottom: 1px solid var(--border) }
+    .cb-back { width: 24px; height: 24px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--muted) }
+    .cb-back:hover { background: var(--card); color: var(--text) }
+    .cb-back svg { width: 15px; height: 15px }
+    .cb-globe { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center; color: var(--muted) }
+    .cb-globe svg { width: 13px; height: 13px }
+    .cb-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--clear); box-shadow: 0 0 6px var(--clear) }
+    .cb-name { font-size: 14px; font-weight: 700; color: var(--cyan) }
+    .cb-java { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; color: #e76f00 }
+    .cb-java svg { width: 15px; height: 15px }
+    .cb-right { margin-left: auto; display: flex; align-items: center; gap: 12px }
+    .cb-today { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--border2); border-radius: 7px; padding: 4px 6px 4px 4px }
+    .cb-today .t { font-size: 10px; font-weight: 700; color: var(--teal); background: var(--teal-glow); padding: 3px 8px; border-radius: 5px }
+    .cb-today .l { font-size: 12px; color: var(--text); font-weight: 500; padding-right: 4px }
+    .cb-date { font-size: 10.5px; color: var(--muted); text-align: right; line-height: 1.45 }
+
+    /* BODY ROW */
+    .body-row { display: flex; flex: 1; overflow: hidden }
+
+    /* ICON SIDEBAR */
+    .ibar { width: 56px; flex-shrink: 0; background: var(--nav); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding: 8px 0; gap: 3px }
+    .ib { width: 38px; height: 38px; border-radius: 9px; display: flex; align-items: center; justify-content: center; color: var(--dim); transition: all .12s; position: relative }
+    .ib:hover { background: var(--card); color: var(--text) }
+    .ib.act { background: var(--teal-glow); color: var(--teal) }
+    .ib.act::before { content: ''; position: absolute; left: -8px; top: 9px; bottom: 9px; width: 3px; border-radius: 3px; background: var(--teal) }
+    .ib svg { width: 19px; height: 19px }
+    .ib-sp { flex: 1 }
+    .ib-line { width: 26px; height: 1px; background: var(--border); margin: 4px 0 }
+
+    /* MAIN */
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden }
+
+    /* TABS */
+    .tabs { flex-shrink: 0; display: flex; align-items: center; gap: 2px; padding: 0 18px; height: 40px; border-bottom: 1px solid var(--border); background: var(--nav) }
+    .tab { padding: 0 14px; height: 100%; display: flex; align-items: center; font-size: 12.5px; font-weight: 500; color: var(--muted); position: relative; white-space: nowrap }
+    .tab:hover { color: var(--text) }
+    .tab.on { color: var(--cyan); font-weight: 600 }
+    .tab.on::after { content: ''; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--cyan) }
+    .tab .tcount { font-size: 10px; font-weight: 700; margin-left: 6px; background: var(--critical-bg); color: var(--critical); padding: 1px 6px; border-radius: 8px }
+
+    /* CONTENT */
+    .content { flex: 1; overflow-y: auto; padding: 16px 18px 40px }
+    .grid { display: grid; gap: 14px }
+
+    /* CARD base */
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px }
+    .card-t { font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px }
+    .card-sub { font-size: 11px; color: var(--muted); margin-top: 2px }
+    .card-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px }
+
+    /* ── ROW 1 : AI cards ───────────────────────────── */
+    .ai-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px }
+
+    .ai-situation {
+      border-radius: 14px; padding: 18px 20px; position: relative;
+      background:
+        linear-gradient(var(--card2), var(--card2)) padding-box,
+        linear-gradient(100deg, #e05b9a, #8c5bd8 42%, #3279be 72%, #22b8d6) border-box;
+      border: 1.5px solid transparent;
+    }
+    .ai-hd { display: flex; align-items: center; gap: 9px; margin-bottom: 12px }
+    .ai-hd .ic { width: 26px; height: 26px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(224, 91, 154, .25), rgba(50, 121, 190, .25)); color: #f0aede }
+    .ai-hd .ic svg { width: 15px; height: 15px }
+    .ai-hd .t { font-size: 14px; font-weight: 700; color: #fff }
+    .ai-body { font-size: 13px; line-height: 1.55; color: #b9c0cf; margin-bottom: 16px }
+    .ai-body b { color: #fff; font-weight: 700 }
+
+    .flow { display: flex; align-items: stretch; gap: 8px }
+    .flow-step { flex: 1; display: flex; align-items: center; gap: 11px; background: rgba(255, 255, 255, .02); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px }
+    .flow-ic { width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0 }
+    .flow-ic svg { width: 17px; height: 17px }
+    .flow-ic.c1 { background: rgba(34, 184, 214, .14); color: var(--cyan); border: 1px solid rgba(34, 184, 214, .3) }
+    .flow-ic.c2 { background: var(--major-bg); color: var(--major); border: 1px solid rgba(245, 133, 24, .3) }
+    .flow-ic.c3 { background: var(--critical-bg); color: var(--critical); border: 1px solid rgba(242, 92, 78, .3) }
+    .flow-txt .n { font-size: 14px; font-weight: 700; color: #fff }
+    .flow-txt .n b { color: #fff }
+    .flow-txt .d { font-size: 10.5px; color: var(--muted); margin-top: 1px }
+    .flow-arrow { display: flex; align-items: center; color: var(--dim); font-size: 16px }
+
+    .ai-engine { border-radius: 14px; padding: 18px 20px; position: relative;
+      background:
+        linear-gradient(var(--card2), var(--card2)) padding-box,
+        linear-gradient(100deg, #22b8d6, #3279be 55%, #8c5bd8) border-box;
+      border: 1.5px solid transparent;
+    }
+    .engine-pill { position: absolute; top: 16px; right: 18px; display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--clear); background: var(--clear-bg); border: 1px solid rgba(137, 197, 64, .35); padding: 4px 10px; border-radius: 20px }
+    .engine-pill .d { width: 7px; height: 7px; border-radius: 50%; background: var(--clear); box-shadow: 0 0 7px var(--clear) }
+    .engine-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px }
+    .estat { border-radius: 11px; padding: 18px 16px; text-align: center; background: var(--inset); border: 1px solid var(--border) }
+    .estat .v { font-size: 34px; font-weight: 800; color: #fff; line-height: 1 }
+    .estat .l { font-size: 12px; color: var(--muted); margin-top: 8px }
+    .estat.score { background: linear-gradient(120deg, #2a3f78, #6a3aa0); border-color: rgba(140, 91, 216, .5) }
+    .estat.score .v, .estat.score .l { color: #fff }
+
+    /* ── ROW 2 : trend chart ────────────────────────── */
+    .trend-card svg { width: 100%; display: block }
+    .legend { display: flex; align-items: center; gap: 16px }
+    .lg { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted) }
+    .lg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block }
+
+    /* ── ROW 3 : severity cards ─────────────────────── */
+    .sev-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px }
+    .sev-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px }
+    .sev-top { display: flex; align-items: baseline; justify-content: space-between }
+    .sev-top .l { font-size: 13px; font-weight: 600; color: var(--text) }
+    .sev-top .v { font-size: 26px; font-weight: 800; color: #fff }
+    .sev-bar { height: 8px; border-radius: 5px; background: var(--inset); margin-top: 14px; overflow: hidden }
+    .sev-bar i { display: block; height: 100%; border-radius: 5px; width: 0; transition: width 1s cubic-bezier(.2, .8, .2, 1) }
+
+    /* ── generic KPI strip ──────────────────────────── */
+    .kpi-row { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px }
+    .kpi { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 15px 16px }
+    .kpi .l { font-size: 11.5px; color: var(--muted); font-weight: 500 }
+    .kpi .v { font-size: 30px; font-weight: 800; margin-top: 8px; line-height: 1; letter-spacing: -1px }
+    .kpi .v small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 2px; letter-spacing: 0 }
+    .kpi .sub { font-size: 10.5px; color: var(--muted); margin-top: 7px; display: flex; align-items: center; gap: 4px }
+    .up { color: var(--critical) } .down { color: var(--clear) }
+
+    /* ── donut cards ────────────────────────────────── */
+    .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px }
+    .donut-wrap { display: flex; align-items: center; gap: 18px }
+    .donut-wrap svg { width: 128px; height: 128px; flex-shrink: 0 }
+    .donut-center { font-size: 22px; font-weight: 800; fill: #fff }
+    .donut-center-l { font-size: 9px; fill: var(--muted); font-weight: 600; letter-spacing: .04em }
+    .dlegend { flex: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0 }
+    .dl { display: flex; align-items: center; gap: 9px; font-size: 12px }
+    .dl i { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0 }
+    .dl .nm { color: var(--text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+    .dl .ct { color: #fff; font-weight: 700 }
+
+    /* ── active errors table ────────────────────────── */
+    .tbl-card { padding: 0; overflow: hidden }
+    .tbl-hd { padding: 15px 18px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border) }
+    .tbl-search { display: flex; align-items: center; gap: 7px; background: var(--inset); border: 1px solid var(--border2); border-radius: 8px; padding: 6px 11px; width: 240px }
+    .tbl-search svg { width: 13px; height: 13px; color: var(--muted); flex-shrink: 0 }
+    .tbl-search input { width: 100%; font-size: 12px }
+    table { width: 100%; border-collapse: collapse }
+    thead th { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 11px 18px; border-bottom: 1px solid var(--border); background: var(--card2) }
+    thead th.r { text-align: right }
+    tbody td { padding: 13px 18px; border-bottom: 1px solid var(--border); font-size: 12.5px; vertical-align: middle }
+    tbody tr:last-child td { border-bottom: none }
+    tbody tr { cursor: pointer }
+    tbody tr:hover { background: var(--card2) }
+    .exc { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); font-weight: 500 }
+    .endp { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 3px }
+    .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 20px }
+    .pill .d { width: 6px; height: 6px; border-radius: 50% }
+    .p-critical { background: var(--critical-bg); color: var(--critical) } .p-critical .d { background: var(--critical) }
+    .p-major { background: var(--major-bg); color: var(--major) } .p-major .d { background: var(--major) }
+    .p-warning { background: var(--warning-bg); color: var(--warning) } .p-warning .d { background: var(--warning) }
+    .code-tag { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 12px }
+    .status-tag { font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 6px }
+    .st-active { background: var(--critical-bg); color: var(--critical) }
+    .st-ack { background: var(--warning-bg); color: var(--warning) }
+    .r { text-align: right }
+    .num { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #fff }
+    .muted { color: var(--muted) }
+
+    .sechead { display: flex; align-items: center; gap: 9px; margin: 22px 2px 2px }
+    .sechead .t { font-size: 13px; font-weight: 700; color: var(--text) }
+    .sechead .line { flex: 1; height: 1px; background: var(--border) }
+    .sechead .cnt { font-size: 11px; color: var(--muted) }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+
+    <!-- ═══ APP HEADER ═══ -->
+    <div class="appbar">
+      <div class="brand">
+        <div class="brand-mark"></div>
+        <div class="brand-word">m<b>o</b>tadata</div>
+      </div>
+      <div class="appbar-r">
+        <button class="ab-ico" title="Screens"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></button>
+        <button class="ab-ico" title="Tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg></button>
+        <button class="ab-ico" title="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="ab-badge">22</span></button>
+        <span class="build-pill">BUILD : 8.1.0</span>
+        <div class="avatar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
+      </div>
+    </div>
+
+    <!-- ═══ BREADCRUMB / TIME ═══ -->
+    <div class="crumbbar">
+      <button class="cb-back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <div class="cb-globe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18"/></svg></div>
+      <span class="cb-dot"></span>
+      <span class="cb-name">mcnulty-query</span>
+      <span class="cb-java" title="Java"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8.85 18.6s-1 .6.71.79c2.06.24 3.11.2 5.38-.23 0 0 .61.38 1.45.71-5.08 2.18-11.5-.13-7.54-1.27M8.2 15.7s-1.13.83.58 1c2.2.22 3.94.24 6.95-.34 0 0 .42.43 1.09.66-6.14 1.8-12.98.14-8.62-1.32M13.3 10.9c1.27 1.46-.33 2.77-.33 2.77s3.22-1.66 1.74-3.74c-1.38-1.94-2.44-2.9 3.29-6.22 0 0-9 2.25-4.7 7.19M19.87 20.75s.75.62-.82 1.1c-2.98.9-12.4 1.17-15.02.04-.94-.41.83-.98 1.38-1.1.58-.13.9-.1.9-.1-1.05-.74-6.8 1.45-2.92 2.08 10.58 1.72 19.28-.77 16.48-2.02M9.35 12.7s-4.82 1.15-1.71 1.56c1.31.18 3.93.14 6.37-.06 2-.17 4-.53 4-.53s-.7.3-1.21.65c-4.9 1.29-14.36.69-11.64-.63 2.3-1.11 4.19-.99 4.19-.99M17.1 17.03c4.98-2.59 2.68-5.08 1.07-4.74-.39.08-.57.15-.57.15s.15-.23.43-.33c3.24-1.14 5.73 3.36-1.03 5.05 0 0 .08-.07.1-.13M14.4 0s2.76 2.76-2.62 7c-4.31 3.41-.98 5.35 0 7.57-2.52-2.27-4.36-4.27-3.13-6.13C10.46 5.72 15.52 4.4 14.4 0M9.85 23.9c4.78.3 12.12-.17 12.3-2.43 0 0-.33.85-3.95 1.52-4.08.76-9.11.67-12.1.18 0 0 .6.5 3.75.73"/></svg></span>
+      <div class="cb-right">
+        <div class="cb-today"><span class="t">Today</span><span class="l">| Today</span></div>
+        <div class="cb-date">Wed, Apr 16, 2025 12:00:00 AM<br>Wed, Apr 16, 2025 04:16:44 PM</div>
+      </div>
+    </div>
+
+    <div class="body-row">
+
+      <!-- ═══ ICON SIDEBAR ═══ -->
+      <nav class="ibar">
+        <div class="ib" title="Dashboards"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg></div>
+        <div class="ib" title="Monitors"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="ib" title="Metrics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 17l5-6 4 4 6-8"/><path d="M3 21h18"/></svg></div>
+        <div class="ib" title="Users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 3-5.5 6.5-5.5s6.5 1.9 6.5 5.5"/><path d="M17 5.2a3.4 3.4 0 0 1 0 6.6M22 20c0-2.5-1.6-4.3-4-5"/></svg></div>
+        <div class="ib" title="Logs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6M9 13h7M9 17h7"/></svg></div>
+        <div class="ib" title="Flows"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h10M4 18h13"/></svg></div>
+        <div class="ib" title="Alerts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+        <div class="ib" title="Topology"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5v4M10 13l-3.5 3.5M14 13l3.5 3.5"/></svg></div>
+        <div class="ib-line"></div>
+        <div class="ib act" title="APM"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="4" width="19" height="13" rx="2"/><path d="M6 13l3-3.5 2.5 2.5L15 7l3 4"/><path d="M8 21h8"/></svg></div>
+        <div class="ib" title="RUM"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18M3 12h18"/></svg></div>
+        <div class="ib" title="Traces"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16M7 10h13M4 15h16M7 20h10"/></svg></div>
+        <div class="ib-sp"></div>
+        <div class="ib" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H3a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 4.6 7l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg></div>
+      </nav>
+
+      <!-- ═══ MAIN ═══ -->
+      <div class="main">
+
+        <!-- TABS -->
+        <div class="tabs">
+          <div class="tab">Overview</div>
+          <div class="tab">Transactions</div>
+          <div class="tab">API Endpoint</div>
+          <div class="tab">Database</div>
+          <div class="tab">JVM</div>
+          <div class="tab">Logs</div>
+          <div class="tab on">Active Error<span class="tcount">847</span></div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+
+          <!-- ── ROW 1 : AI SITUATION + ENGINE ── -->
+          <div class="ai-row">
+
+            <div class="ai-situation">
+              <div class="ai-hd">
+                <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/><path d="M19 14l.9 2.3L22 17l-2.1.7L19 20l-.9-2.3L16 17l2.1-.7z"/></svg></div>
+                <div class="t">AI Situation Summary</div>
+              </div>
+              <div class="ai-body">
+                Your infrastructure is under <b>moderate stress</b>. The payment stack shows
+                <b>correlated issues</b>: high CPU, latency shift, and log errors may share a root
+                cause. <b>3 incidents likely in next 4h</b> without intervention.
+              </div>
+              <div class="flow">
+                <div class="flow-step">
+                  <div class="flow-ic c1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13z"/></svg></div>
+                  <div class="flow-txt"><div class="n"><b>86</b> Event created</div><div class="d">Raw event detected from monitor</div></div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                  <div class="flow-ic c2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+                  <div class="flow-txt"><div class="n"><b>61</b> Converted to Alert</div><div class="d">Threshold crossed, alert raised</div></div>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">
+                  <div class="flow-ic c3"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2s5 4 5 9a5 5 0 0 1-10 0c0-2 1-3 1-3s0 2 1.5 2.5C10 11 9 8 12 2z"/></svg></div>
+                  <div class="flow-txt"><div class="n"><b>14</b> Converted to Incident</div><div class="d">Escalated for resolution</div></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="ai-engine">
+              <div class="ai-hd">
+                <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></div>
+                <div class="t">AI Intelligence Engine</div>
+              </div>
+              <div class="engine-pill"><span class="d"></span>Engine Active</div>
+              <div class="ai-body" style="margin-bottom:6px">
+                Analyzed <b>1.2M metrics</b> across 14 modules · Detected <b>12 new patterns</b> in
+                the last hour · <b>3 forecasted incidents</b> in next 6h
+              </div>
+              <div class="engine-stats">
+                <div class="estat"><div class="v">6</div><div class="l">Active Alert</div></div>
+                <div class="estat score"><div class="v">66</div><div class="l">Score out of 100</div></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── ROW 2 : TODAY ALERT TREND ── -->
+          <div class="card trend-card" style="margin-top:14px">
+            <div class="card-hd">
+              <div>
+                <div class="card-t">Today Alert trend</div>
+                <div class="card-sub">Alerts raised per hour, stacked by severity</div>
+              </div>
+              <div class="legend">
+                <span class="lg"><i style="background:var(--critical)"></i>Critical</span>
+                <span class="lg"><i style="background:var(--major)"></i>Major</span>
+                <span class="lg"><i style="background:var(--warning)"></i>Warning</span>
+              </div>
+            </div>
+            <svg id="trend" viewBox="0 0 1180 300" preserveAspectRatio="none"></svg>
+          </div>
+
+          <!-- ── ROW 3 : SEVERITY ── -->
+          <div class="sechead"><span class="t">Severity · 12:00</span><span class="line"></span><span class="cnt">275 alerts in window</span></div>
+          <div class="sev-row" style="margin-top:12px">
+            <div class="sev-card"><div class="sev-top"><span class="l">Critical</span><span class="v">115</span></div><div class="sev-bar"><i data-w="96" style="background:var(--critical)"></i></div></div>
+            <div class="sev-card"><div class="sev-top"><span class="l">Major</span><span class="v">120</span></div><div class="sev-bar"><i data-w="100" style="background:var(--major)"></i></div></div>
+            <div class="sev-card"><div class="sev-top"><span class="l">Warning</span><span class="v">40</span></div><div class="sev-bar"><i data-w="33" style="background:var(--warning)"></i></div></div>
+            <div class="sev-card"><div class="sev-top"><span class="l">Total</span><span class="v">275</span></div><div class="sev-bar"><i data-w="100" style="background:var(--blue)"></i></div></div>
+          </div>
+
+          <!-- ── ROW 4 : ERROR KPIs (APM) ── -->
+          <div class="sechead"><span class="t">Error &amp; exception metrics</span><span class="line"></span><span class="cnt">Today · mcnulty-query</span></div>
+          <div class="kpi-row" style="margin-top:12px">
+            <div class="kpi"><div class="l">Error Count</div><div class="v" style="color:var(--critical)">847</div><div class="sub up">▲ 18% vs yesterday</div></div>
+            <div class="kpi"><div class="l">Error Percentage</div><div class="v" style="color:var(--critical)">78<small>%</small></div><div class="sub up">▲ 12 pts</div></div>
+            <div class="kpi"><div class="l">Affected Transactions</div><div class="v" style="color:#fff">32</div><div class="sub muted">of 214 monitored</div></div>
+            <div class="kpi"><div class="l">Error Rate</div><div class="v" style="color:var(--major)">9.4<small>/min</small></div><div class="sub up">▲ 2.1 /min</div></div>
+            <div class="kpi"><div class="l">Apdex</div><div class="v" style="color:var(--warning)">0.62</div><div class="sub down">▼ tolerating</div></div>
+            <div class="kpi"><div class="l">MTTR</div><div class="v" style="color:#fff">14<small>m</small></div><div class="sub down">▼ 4m faster</div></div>
+          </div>
+
+          <!-- ── ROW 5 : DONUTS ── -->
+          <div class="three" style="margin-top:14px">
+            <div class="card">
+              <div class="card-hd"><div class="card-t">Error Code by Count</div></div>
+              <div class="donut-wrap"><svg id="donut-code"></svg><div class="dlegend" id="legend-code"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><div class="card-t">Top Exception by Count</div></div>
+              <div class="donut-wrap"><svg id="donut-exc"></svg><div class="dlegend" id="legend-exc"></div></div>
+            </div>
+            <div class="card">
+              <div class="card-hd"><div class="card-t">Errors by Status</div></div>
+              <div class="donut-wrap"><svg id="donut-status"></svg><div class="dlegend" id="legend-status"></div></div>
+            </div>
+          </div>
+
+          <!-- ── ROW 6 : ACTIVE ERRORS TABLE ── -->
+          <div class="card tbl-card" style="margin-top:14px">
+            <div class="tbl-hd">
+              <div class="card-t">Active Errors <span class="muted" style="font-weight:500">· grouped by exception</span></div>
+              <div class="tbl-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input placeholder="Search exception, endpoint, code…"></div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Exception / Transaction</th>
+                  <th>HTTP</th>
+                  <th>Severity</th>
+                  <th class="r">Count</th>
+                  <th>First Seen</th>
+                  <th>Last Seen</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="err-rows"></tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── seeded PRNG (deterministic render every load) ── */
+    function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296 } }
+
+    /* ── ROW 2 : Today Alert trend (stacked bars) ── */
+    (function trend() {
+      const W = 1180, H = 300, padL = 44, padR = 16, padT = 14, padB = 34;
+      const plotW = W - padL - padR, plotH = H - padT - padB;
+      const hours = ['23:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00'];
+      const yMax = 120, ticks = [0, 35, 65, 85, 120];
+      const r = rng(4207);
+      // per-hour stacked [critical, major, warning] roughly matching the reference silhouette
+      const shape = [78, 30, 34, 46, 22, 40, 68, 30, 34, 78, 20, 999, 74];
+      const data = shape.map((tot, i) => {
+        if (tot === 999) return { spike: true, c: 118, m: 0, w: 0 };  // thin bright spike near 12:00
+        const w = Math.round(tot * (0.22 + r() * 0.12));
+        const c = Math.round((tot - w) * (0.45 + r() * 0.15));
+        const m = tot - w - c;
+        return { c, m, w };
+      });
+      const n = data.length, slot = plotW / n, bw = Math.min(30, slot * 0.42);
+      const y = v => padT + plotH - (v / yMax) * plotH;
+      let s = '';
+      // gridlines + y labels
+      ticks.forEach(t => {
+        const yy = y(t);
+        s += `<line x1="${padL}" y1="${yy}" x2="${W - padR}" y2="${yy}" stroke="#20202b" stroke-width="1"/>`;
+        s += `<text x="${padL - 10}" y="${yy + 4}" text-anchor="end" font-size="11" fill="#6b7183" font-family="JetBrains Mono">${t}</text>`;
+      });
+      // bars
+      data.forEach((d, i) => {
+        const cx = padL + slot * i + slot / 2;
+        if (d.spike) {
+          const x = cx - 3;
+          s += `<rect x="${x}" y="${y(d.c)}" width="6" height="${plotH + padT - y(d.c)}" rx="2" fill="url(#spike)"/>`;
+        } else {
+          const x = cx - bw / 2;
+          let yy = padT + plotH, seg = [['w', d.w, 'var(--warning)'], ['m', d.m, 'var(--major)'], ['c', d.c, 'var(--critical)']];
+          // draw from bottom (critical) up: order critical, major, warning bottom->top like reference
+          seg = [['c', d.c, '#f25c4e'], ['m', d.m, '#f58518'], ['w', d.w, '#f5bc18']];
+          seg.forEach(([k, v, col]) => {
+            const h = (v / yMax) * plotH; if (h <= 0) return;
+            yy -= h;
+            s += `<rect x="${x}" y="${yy}" width="${bw}" height="${h}" fill="${col}"/>`;
+          });
+          // rounded top cap
+        }
+        s += `<text x="${cx}" y="${H - 12}" text-anchor="middle" font-size="10.5" fill="#6b7183" font-family="JetBrains Mono">${hours[i]}</text>`;
+      });
+      const defs = `<defs><linearGradient id="spike" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e3e9f2"/><stop offset="1" stop-color="#f5bc18"/></linearGradient></defs>`;
+      document.getElementById('trend').innerHTML = defs + s;
+    })();
+
+    /* ── donut renderer ── */
+    function donut(svgId, legendId, data, centerLabel) {
+      const total = data.reduce((a, d) => a + d.v, 0);
+      const size = 128, cx = size / 2, cy = size / 2, R = 52, sw = 20;
+      let ang = -Math.PI / 2, arcs = '';
+      const C = 2 * Math.PI * R;
+      data.forEach(d => {
+        const frac = d.v / total, len = frac * C;
+        arcs += `<circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="${d.c}" stroke-width="${sw}"
+          stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-(ang + Math.PI / 2) / (2 * Math.PI) * C}"
+          transform="rotate(-90 ${cx} ${cy})"/>`;
+        ang += frac * 2 * Math.PI;
+      });
+      const svg = document.getElementById(svgId);
+      svg.setAttribute('viewBox', `0 0 ${size} ${size}`);
+      svg.innerHTML = arcs +
+        `<text x="${cx}" y="${cy - 2}" text-anchor="middle" class="donut-center">${total}</text>` +
+        `<text x="${cx}" y="${cy + 13}" text-anchor="middle" class="donut-center-l">${centerLabel}</text>`;
+      document.getElementById(legendId).innerHTML = data.map(d =>
+        `<div class="dl"><i style="background:${d.c}"></i><span class="nm" title="${d.nm}">${d.nm}</span><span class="ct">${d.v}</span></div>`
+      ).join('');
+    }
+
+    const pal = ['#f25c4e', '#f58518', '#f5bc18', '#009ddc', '#8c5bd8'];
+
+    donut('donut-code', 'legend-code', [
+      { nm: '401 Unauthorized', v: 68, c: pal[0] },
+      { nm: '403 Forbidden', v: 53, c: pal[1] },
+      { nm: '400 Bad Request', v: 48, c: pal[2] },
+      { nm: '503 Unavailable', v: 35, c: pal[3] },
+      { nm: '404 Not Found', v: 22, c: pal[4] },
+    ], 'CODES');
+
+    donut('donut-exc', 'legend-exc', [
+      { nm: 'PSQLException', v: 68, c: pal[0] },
+      { nm: 'NullPointerException', v: 53, c: pal[1] },
+      { nm: 'ConnectException', v: 20, c: pal[2] },
+      { nm: 'ApmApiException', v: 18, c: pal[3] },
+      { nm: 'NumberFormatException', v: 15, c: pal[4] },
+    ], 'EXCEPTIONS');
+
+    donut('donut-status', 'legend-status', [
+      { nm: 'Active', v: 176, c: pal[0] },
+      { nm: 'Acknowledged', v: 132, c: pal[1] },
+      { nm: 'Suppressed', v: 41, c: pal[2] },
+    ], 'ERRORS');
+
+    /* ── ROW 6 : active errors table ── */
+    const errors = [
+      { exc: 'org.postgresql.util.PSQLException', endp: 'POST /api/payments/charge', http: '503', sev: 'critical', ct: 68, first: '09:12', last: '2m ago', st: 'active' },
+      { exc: 'java.lang.NullPointerException', endp: 'GET /reports/advanced/moduledata', http: '500', sev: 'critical', ct: 53, first: '07:48', last: '4m ago', st: 'active' },
+      { exc: 'Unauthorized', endp: 'POST /auth/token', http: '401', sev: 'major', ct: 68, first: '06:30', last: '1m ago', st: 'active' },
+      { exc: 'Forbidden', endp: 'GET /admin/settings', http: '403', sev: 'major', ct: 53, first: '08:05', last: '9m ago', st: 'ack' },
+      { exc: 'java.net.ConnectException', endp: 'GET /downstream/inventory', http: '502', sev: 'critical', ct: 20, first: '10:22', last: '3m ago', st: 'active' },
+      { exc: 'com.me.apminsight.client.api.ApmApiException', endp: 'POST /ingest/traces', http: '500', sev: 'major', ct: 18, first: '05:40', last: '12m ago', st: 'ack' },
+      { exc: 'Bad Request', endp: 'POST /api/orders', http: '400', sev: 'warning', ct: 48, first: '06:58', last: '15m ago', st: 'ack' },
+      { exc: 'java.lang.NumberFormatException', endp: 'GET /search?page=', http: '500', sev: 'warning', ct: 15, first: '11:03', last: '20m ago', st: 'ack' },
+    ];
+    const httpCol = h => h[0] === '5' ? 'var(--critical)' : h[0] === '4' ? 'var(--major)' : 'var(--muted)';
+    document.getElementById('err-rows').innerHTML = errors.map(e => `
+      <tr>
+        <td><div class="exc">${e.exc}</div><div class="endp">${e.endp}</div></td>
+        <td><span class="code-tag" style="color:${httpCol(e.http)}">${e.http}</span></td>
+        <td><span class="pill p-${e.sev}"><span class="d"></span>${e.sev[0].toUpperCase() + e.sev.slice(1)}</span></td>
+        <td class="r"><span class="num">${e.ct}</span></td>
+        <td class="muted">${e.first}</td>
+        <td class="muted">${e.last}</td>
+        <td><span class="status-tag ${e.st === 'active' ? 'st-active' : 'st-ack'}">${e.st === 'active' ? 'Active' : 'Acknowledged'}</span></td>
+      </tr>`).join('');
+
+    /* ── animate severity bars ── */
+    requestAnimationFrame(() => {
+      document.querySelectorAll('.sev-bar i').forEach(i => i.style.width = i.dataset.w + '%');
+    });
+
+    /* ── tabs (visual toggle) ── */
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      document.querySelector('.tab.on').classList.remove('on');
+      t.classList.add('on');
+    }));
+  </script>
+</body>
+
+</html>

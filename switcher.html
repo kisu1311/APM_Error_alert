@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ObserveOps · Option Switcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0A0F1C; --bar:#080C16; --card:#0E1525; --card-2:#121B2D;
+    --border:#1B2438; --border-soft:#151D2E;
+    --text:#E8ECF4; --text-2:#98A1B4; --text-3:#5C6679; --text-4:#454E61;
+    --accent:#F26B3A; --accent-soft:rgba(242,107,58,.16);
+    --ui:"Inter",-apple-system,"Segoe UI",sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);font-family:var(--ui);
+    -webkit-font-smoothing:antialiased;overflow:hidden}
+
+  /* full-screen frame that hosts the selected option */
+  #stage{position:fixed;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+
+  /* floating launcher button */
+  .launcher{position:fixed;top:16px;left:16px;z-index:50;
+    display:inline-flex;align-items:center;gap:10px;
+    height:42px;padding:0 16px;border-radius:11px;cursor:pointer;
+    background:linear-gradient(180deg,var(--card-2),var(--card));
+    border:1px solid var(--border);color:var(--text);
+    font-family:var(--ui);font-size:13.5px;font-weight:700;letter-spacing:.2px;
+    box-shadow:0 10px 30px -12px rgba(0,0,0,.75);
+    transition:border-color .16s,transform .16s,box-shadow .16s}
+  .launcher:hover{border-color:var(--accent);transform:translateY(-1px);
+    box-shadow:0 14px 34px -12px rgba(0,0,0,.85),0 0 0 1px var(--accent) inset}
+  .launcher .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 0 4px var(--accent-soft)}
+  .launcher .now{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--accent)}
+  .launcher .chev{transition:transform .18s}
+  .launcher.open .chev{transform:rotate(180deg)}
+
+  /* dropdown panel with all options */
+  .panel{position:fixed;top:66px;left:16px;z-index:49;width:320px;
+    background:linear-gradient(180deg,var(--card-2),var(--card));
+    border:1px solid var(--border);border-radius:14px;padding:8px;
+    box-shadow:0 24px 60px -20px rgba(0,0,0,.85);
+    opacity:0;transform:translateY(-8px) scale(.98);pointer-events:none;
+    transition:opacity .16s,transform .16s}
+  .panel.open{opacity:1;transform:none;pointer-events:auto}
+  .panel .phead{display:flex;align-items:center;justify-content:space-between;
+    padding:9px 11px 11px;color:var(--text-3);font-size:10.5px;font-weight:700;
+    letter-spacing:1.4px;text-transform:uppercase}
+  .panel .phead .hint{font-family:var(--mono);color:var(--text-4);letter-spacing:.3px}
+
+  .opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;
+    background:transparent;border:1px solid transparent;border-radius:10px;
+    padding:11px 11px;cursor:pointer;color:inherit;font-family:var(--ui)}
+  .opt:hover{background:var(--card-hover,#141E32);border-color:var(--border-soft)}
+  .opt.active{background:var(--accent-soft);border-color:var(--accent)}
+  .opt .num{flex:0 0 30px;height:30px;border-radius:8px;display:flex;
+    align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:13px;font-weight:700;color:var(--text-3);
+    background:#0A1120;border:1px solid var(--border)}
+  .opt.active .num{color:var(--accent);border-color:var(--accent)}
+  .opt .meta{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+  .opt .title{display:block;font-size:14px;font-weight:700;letter-spacing:-.2px}
+  .opt .file{display:block;font-family:var(--mono);font-size:10.5px;color:var(--text-4);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .opt .check{opacity:0;color:var(--accent);flex:0 0 auto}
+  .opt.active .check{opacity:1}
+
+  /* click-away backdrop */
+  .scrim{position:fixed;inset:0;z-index:48;background:transparent;display:none}
+  .scrim.on{display:block}
+</style>
+</head>
+<body>
+
+  <iframe id="stage" title="Selected option"></iframe>
+
+  <div class="scrim" id="scrim"></div>
+
+  <button class="launcher" id="launcher" aria-haspopup="true" aria-expanded="false">
+    <span class="dot"></span>
+    <span>Options</span>
+    <span class="now" id="nowLabel">1</span>
+    <svg class="chev" viewBox="0 0 24 24" width="15" height="15" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+
+  <div class="panel" id="panel" role="menu" aria-label="Switch option">
+    <div class="phead"><span>Switch Option</span><span class="hint">press 1–5</span></div>
+    <div id="optList"></div>
+  </div>
+
+<script>
+  // The 5 options — order here defines Option 1..5
+  const OPTIONS = [
+    { label: "Option 1", file: "ObserveOps APM RUM Incident-First (standalone) 1.html" },
+    { label: "Option 2", file: "ObserveOps APM RUM Incident-First (standalone) 1 1.html" },
+    { label: "Option 3", file: "ObserveOps APM RUM Incident-First (standalone) 1 2.html" },
+    { label: "Option 4", file: "ObserveOps APM RUM Incident-First (standalone) 1 (1).html" },
+    { label: "Option 5", file: "error-alert.html" },
+  ];
+
+  const stage    = document.getElementById('stage');
+  const launcher = document.getElementById('launcher');
+  const panel    = document.getElementById('panel');
+  const scrim    = document.getElementById('scrim');
+  const optList  = document.getElementById('optList');
+  const nowLabel = document.getElementById('nowLabel');
+
+  let current = -1;
+
+  // build the option rows
+  OPTIONS.forEach((o, i) => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.setAttribute('role', 'menuitemradio');
+    b.innerHTML =
+      '<span class="num">' + (i + 1) + '</span>' +
+      '<span class="meta"><span class="title">' + o.label + '</span>' +
+      '<span class="file">' + o.file + '</span></span>' +
+      '<svg class="check" viewBox="0 0 24 24" width="17" height="17" fill="none"><path d="M5 12.5l5 5 9-11" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    b.addEventListener('click', () => { select(i); closePanel(); });
+    optList.appendChild(b);
+  });
+  const rows = Array.from(optList.children);
+
+  function select(i){
+    if (i < 0 || i >= OPTIONS.length) return;
+    current = i;
+    stage.src = encodeURI(OPTIONS[i].file);
+    nowLabel.textContent = String(i + 1);
+    rows.forEach((r, k) => r.classList.toggle('active', k === i));
+    try { location.hash = 'option' + (i + 1); } catch (e) {}
+  }
+
+  function openPanel(){ panel.classList.add('open'); launcher.classList.add('open');
+    launcher.setAttribute('aria-expanded','true'); scrim.classList.add('on'); }
+  function closePanel(){ panel.classList.remove('open'); launcher.classList.remove('open');
+    launcher.setAttribute('aria-expanded','false'); scrim.classList.remove('on'); }
+  function togglePanel(){ panel.classList.contains('open') ? closePanel() : openPanel(); }
+
+  launcher.addEventListener('click', togglePanel);
+  scrim.addEventListener('click', closePanel);
+
+  // keyboard: 1–5 switch, Esc closes
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closePanel(); return; }
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= OPTIONS.length) { select(n - 1); }
+  });
+
+  // honour #optionN in the URL, else default to Option 1
+  const m = (location.hash || '').match(/option(\d+)/i);
+  select(m ? Math.min(Math.max(parseInt(m[1],10),1), OPTIONS.length) - 1 : 0);
+</script>
+</body>
+</html>
